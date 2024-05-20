@@ -1,0 +1,126 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Data.SqlClient;
+namespace WindowsFormsApp1
+{
+    public partial class MainForm : Form
+    {
+        DataBaze databaze = new DataBaze(); //Экземпляр класс для взаимодействие с базой данных
+        int selecteRow;
+        public MainForm()
+        {
+            InitializeComponent();
+        }
+        private void CreateColumns() //метод отвечает за создание столбцов в элементе управления DataGridView. Столбцы представляют различные атрибуты записи данных
+        {
+            dataGV.Columns.Add("id", "id");
+            dataGV.Columns.Add("Фамилия", "Фамилия");
+            dataGV.Columns.Add("Имя", "Имя");
+            dataGV.Columns.Add("Телефон", "Телефон");
+            dataGV.Columns.Add("ТипУслуги", "Тип услуги");
+            dataGV.Columns.Add("ДатаВремя", "Дата и Время");
+            dataGV.Columns.Add("IsNew", String.Empty);
+
+
+        }
+        private void ReadSingleRow(DataGridView dgw, IDataRecord record) //Метод для добавления новой строки в "DataGridViewRow"
+        {
+            dgw.Rows.Add(record.GetInt32(0), record.GetString(1), record.GetString(2), record.GetString(3), record.GetString(4), record.GetString(5));
+        }
+
+        private void RefreshDataGrid(DataGridView dgw)  //Метод для обновления данных в элементе управления "DataGridViewRow" путем очистки существующих строк и добавления новых данных в бд
+        {
+            dgw.Rows.Clear();
+            string queryString = $"select * from Record "; //Соединение таблицы из базы данных
+            SqlCommand command = new SqlCommand(queryString, databaze.getConection());
+
+            databaze.openConection();
+
+            SqlDataReader reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                ReadSingleRow(dgw, reader);
+            }
+            reader.Close();
+        }
+
+        private void MainForm_Load(object sender, EventArgs e) // вызывает CreateColumns метод для создания необходимых столбцов в DataGridView, а затем вызывает RefreshDataGrid метод для заполнения DataGridView данными из базы данных
+        {
+            CreateColumns();
+            RefreshDataGrid(dataGV);
+        }
+
+        private void dataGV_CellClick(object sender, DataGridViewCellEventArgs e) //При нажатии на строку из таблицы происходит вывод данных в панель запись
+        {
+            selecteRow = e.RowIndex;
+            if (e.RowIndex >= 0)
+            {
+                DataGridViewRow row = dataGV.Rows[selecteRow];
+
+                id_textBox.Text = row.Cells[0].Value.ToString();
+                Sur_textBox.Text = row.Cells[1].Value.ToString();
+                Name_textBox.Text = row.Cells[2].Value.ToString();
+                Number_textBox.Text = row.Cells[3].Value.ToString();
+                Service_textBox.Text = row.Cells[4].Value.ToString();
+                DataTtextBox.Text = row.Cells[5].Value.ToString();
+            }
+
+        }
+
+        private void Refresh_button_Click(object sender, EventArgs e) //Кнопка обновления данных в таблице
+        {
+            RefreshDataGrid(dataGV);
+        }
+
+        private void Newbutton_Click(object sender, EventArgs e) //Переход на форму "Создание записи"
+        {
+            RecordForm recordForm = new RecordForm();
+            recordForm.Show();
+        }
+
+        private void Servicebutton_Click(object sender, EventArgs e) //Переход на форму Услуги
+        {
+            this.Hide();
+            ServiceForm serviceForm = new ServiceForm();
+            serviceForm.Show();
+        }
+
+        private void Chartbutton_Click(object sender, EventArgs e)   //Переход на форму Мастер
+        {
+            this.Hide();
+            ChartForm chartForm = new ChartForm();
+            chartForm.Show();
+        }
+        private void Search(DataGridView dgw)  //Поиск нужной информации о клиенте
+        {
+            dgw.Rows.Clear();
+            string searchString = $"select * from Record  where concat (Фамилия,Имя,Телефон,ТипУслуги,ДатаВремя) like'%" + SearchTextb.Text + "%'";
+            SqlCommand command = new SqlCommand(searchString, databaze.getConection());
+            databaze.openConection();
+            SqlDataReader read = command.ExecuteReader();
+
+            while (read.Read()) //Цикл перебирает строки, возвращаемые запросом, используя Read() метод SqlDataReader. Для каждой строки вызывается ReadSingleRow метод, передающий DataGridView и текущую строку SqlDataReader
+            {
+                ReadSingleRow(dgw, read);
+            }
+            read.Close();
+        }
+
+        private void SearchTextb_TextChanged(object sender, EventArgs e) // Текст поиска из этого элемента управления
+        {
+            Search(dataGV);
+        }
+
+    }
+
+}
+
+
